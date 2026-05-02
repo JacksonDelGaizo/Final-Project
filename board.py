@@ -131,12 +131,8 @@ class Board:
                 if road_spot not in self.board_road_spots:
                     self.board_road_spots.append(road_spot)
 
-
-
-
-
     def get_valid_road_spots(self):
-        return [spot for spot in self.board_road_spots if not self.is_blocked(spot,0)]
+        return [spot for spot in self.board_road_spots if spot not in self.all_roads]
 
     def get_adjacent_settlements(self, road_spot, player_id):
         """Return YOUR settlements adjacent to this road"""
@@ -190,6 +186,14 @@ class Board:
                 adjacent.append(road)
 
         return adjacent
+
+    def get_valid_gameplay_settlement_spots(self, player_id):
+        """Valid spots must be: unblocked + adjacent to your road"""
+        valid = []
+        for spot in self.get_valid_settlement_spots():  # ← Reuse existing method
+            if self.get_adjacent_roads(spot, player_id):
+                valid.append(spot)
+        return valid
 
 
 

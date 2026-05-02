@@ -18,10 +18,28 @@ Phase	What	Why
 6	Settlements/roads placement (mid-game)	Now placement mechanics work
 3	Dice roll + resource distribution	Resources flow to placed settlements
 5	Trading system	Players can trade
+5.5 victory points 
 7	Polish UI/UX	Professional
-8	Art + animations	Eye candy
+8	Art 	Eye candy
+8.5 cities 
 9	Robber	Stretch goal
+9.5 limited amount of buildings 
+9.75 animations 
 10	Dev cards	Stretch goal
+
+
+
+
+
+
+
+'''if player_state == "collecting_resources" and game_phase == "gameplay":
+        # noinspection PyUnboundLocalVariable
+        for tile in board.get_tiles_by_number(roll):'''
+
+                if first_turn_tick:
+                    player_state = "roll"
+                    first_turn_tick = False
 
 
 
