@@ -6,11 +6,16 @@ from board import Board
 from player import Player
 import select
 #import time
+people=0
 
 
 class GameServer:
     def __init__(self, num_players=4):
         self.players = []
+        self.answers = []
+        self.transfer_to_player={}
+        self.transfer_from_player={}
+
         self.current_player = 0
         self.board = Board(None)  # Server doesn't need font
         self.setup_order = list(range(num_players))
@@ -42,6 +47,7 @@ class GameServer:
         self.players[player_id].remove_resource("brick", 1)
         self.players[player_id].remove_resource("wheat", 1)
         self.players[player_id].remove_resource("sheep", 1)
+        self.players[player_id].vp(1)
 
     def place_road(self, road_spot, player_id):
         """Place a road on the board"""
@@ -82,8 +88,32 @@ class GameServer:
                 if distance < 80:  # Close enough to be adjacent
                     self.players[player_id].add_resource(tile["resource"], 1)
 
-    def trade(self):
-        pass
+    def do_trade(self):
+        print("doing trade")
+        print(f"self.answers: {self.answers}")
+        try:
+            lucky_guy=random.choice(self.answers)
+        except:
+            lucky_guy=self.answers[0]
+        print(lucky_guy)
+        print (f"self.transfer_from_player: {self.transfer_from_player}")
+        print(f"self.transfer_to_player: {self.transfer_to_player}")
+        for resource,amount in self.transfer_to_player.items():
+            print(f"resource: {resource}, amount: {amount}")
+            if amount == 0:
+                continue
+            self.players[lucky_guy].remove_resource2(resource, amount)
+            self.players[self.current_player].add_resource(resource, amount)
+        for resource,amount in self.transfer_from_player.items():
+            print(f"resource: {resource}, amount: {amount}")
+            if amount == 0:
+                continue
+            self.players[lucky_guy].add_resource(resource, amount)
+            self.players[self.current_player].remove_resource2(resource, amount)
+        self.answers=[]
+        self.transfer_from_player={}
+        self.transfer_to_player={}
+
 
     def build(self):
         pass
@@ -92,7 +122,9 @@ class GameServer:
         self.current_player = (self.current_player + 1) % len(self.players)
     def end_turn(self):
         self.next_turn()
-        self.current_phase = "roll_dice"
+        if self.current_phase != "gameplay":
+            print ("something is terribly wrong")
+            self.current_phase = "gameplay"
 
     def end_turn_in_setup(self):
         self.setup_index += 1
@@ -130,6 +162,7 @@ client_num = 0
 
 while client_num < 4:
     print(client_num)
+    print(connected_clients)
     client_socket, address = server_socket.accept()
     client_to_player[client_socket] = client_num
     print(f"Player {client_num} connected: {address}")
@@ -170,7 +203,7 @@ while True:
 
                 if command["action"] == "roll_dice":
                     result = game.roll_dice()
-                    print (result)
+
 
                     for player in game.players:
                         game.gather_resource(player.player_id, result)
@@ -188,7 +221,7 @@ while True:
 
                         })
                         sock.send(response.encode())
-                        print(response)
+
 
                 if command["action"] == "place_settlement":
                     settlement_spot = tuple(command["spot"])
@@ -239,14 +272,15 @@ while True:
                     roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
 
                     # Broadcast updated state
-                    response = json.dumps({
-                        "all_settlements": settlements_list,
-                        "all_roads": roads_list,
-                        "current_player": game.current_player,
-                        "game_phase": game.current_phase
-                    })
-                    for client in connected_clients:
-                        client.send(response.encode())
+                    for sock, pid in client_to_player.items():
+                        response = json.dumps({
+                            "all_settlements": settlements_list,
+                            "all_roads": roads_list,
+                            "current_player": game.current_player,
+                            "game_phase": game.current_phase,
+                            "resources": game.players[pid].resources
+                        })
+                        sock.send(response.encode())
 
                 if command["action"] == "place_settlement_gameplay":
                     settlement_spot = tuple(command["spot"])
@@ -286,6 +320,51 @@ while True:
                             "resources": game.players[pid].resources
                         })
                         sock.send(response.encode())
+                if command["action"] == "propose_trade":
+                    game.transfer_from_player = command["give"]
+                    game.transfer_to_player = command["get"]
+                    settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
+                    roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                    for sock, pid in client_to_player.items():
+                        if pid == game.current_player:
+                            continue
+                        else:
+                            response = json.dumps({
+                                "all_settlements": settlements_list,
+                                "all_roads": roads_list,
+                                "current_player": game.current_player,
+                                "game_phase": game.current_phase,
+                                "resources": game.players[pid].resources,
+                                "give": game.transfer_to_player,
+                                "get": game.transfer_from_player
+                            })
+                            sock.send(response.encode())
+                if command["action"] == "answer_trade":
+                    print (command)
+                    responder = command["player_id"]
+                    decision = command["decision"]
+                    people +=1
+                    print (people)
+                    if decision == "accept":
+                        game.answers.append(responder)
+                    if people == 3:
+                        print("yayayayayayyayayaya")
+                        game.do_trade()
+                        settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
+                        roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                        for sock, pid in client_to_player.items():
+                            response = json.dumps({
+                                "all_settlements": settlements_list,
+                                "all_roads": roads_list,
+                                "current_player": game.current_player,
+                                "game_phase": game.current_phase,
+                                "resources": game.players[pid].resources
+                            })
+                            print(response)
+                            sock.send(response.encode())
+                        people=0
+
+
 
 
         except Exception as e:

@@ -42,7 +42,7 @@ class Board:
                     num = numbers[count]
                     count += 1
                 else:
-                    num = None  # Desert has no number
+                    num = ""  # Desert has no number
 
                 x = (SCREEN_WIDTH // 2) - (self.cols[row] * (TILE_SIZE) // 2) + (col * (TILE_SIZE))
                 y = 50 + 100 * row
@@ -194,6 +194,23 @@ class Board:
             if self.get_adjacent_roads(spot, player_id):
                 valid.append(spot)
         return valid
+
+    def get_adjacent_roads_to_road(self, road_spot, player_id):
+        """Return YOUR roads adjacent to this road"""
+        road_x, road_y, rotation = road_spot
+        adjacent = []
+
+        for road, owner_id in self.all_roads.items():
+            if owner_id != player_id:
+                continue
+
+            other_x, other_y, other_rotation = road
+            distance = ((road_x - other_x) ** 2 + (road_y - other_y) ** 2) ** 0.5
+
+            if distance < 60:
+                adjacent.append(road)
+
+        return adjacent
 
 
 

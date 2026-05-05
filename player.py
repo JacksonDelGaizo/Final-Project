@@ -6,11 +6,11 @@ class Player:
 
         # Resources
         self.resources = {
-            "wood": 0,
-            "wheat": 0,
-            "ore": 0,
             "brick": 0,
-            "sheep": 0
+            "ore": 0,
+            "sheep": 0,
+            "wheat": 0,
+            "wood": 0
         }
 
         # Settlements and roads
@@ -19,7 +19,7 @@ class Player:
         self.cities = []  # List of upgraded settlements
 
         # Score
-        self.victory_points = 0
+        self.victory_points = 2
 
     def add_resource(self, resource, amount):
         self.resources[resource] += amount
@@ -29,6 +29,9 @@ class Player:
             self.resources[resource] -= amount
             return True
         return False
+
+    def remove_resource2(self, resource, amount):
+        self.resources[resource] -= amount
 
     def place_settlement(self, settlement_id):
         self.settlements.append(settlement_id)
