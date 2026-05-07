@@ -1,36 +1,32 @@
-# Game Setup and Gameplay Guide
+# Catan
 
-## Setup Instructions
+## Setup
 
-Follow these steps to set up and run the game:
+Make sure you have all the files in a PyCharm project. Go into `main.py` and `server.py` and check that you see this code:
 
-1. **Prepare the Project Files:** Ensure all project files are organized in a PyCharm project directory. By the way 
+```python
+server_socket.connect(("localhost", 6068))
+```
 
-2. **Verify Connection Settings:** Open both `main.py` and `server.py` and verify that the server connection uses:
-   ```
-   server_socket.connect(("localhost", 6068))
-   ```
-   Ensure the connection is set to `localhost` and not configured to connect to a different IP address. For grading purposes, everything should be hosted locally.
+Make sure it isn't going to try to connect to a different IP address. For grading this project, host everything locally.
 
-3. **Run the Test Suite:** Open your terminal and run:
-   ```bash
-   python test.py
-   ```
-   This will start the server and launch all four players on your computer. Each Pygame window represents a separate player.
+## Running the Game
 
-## Gameplay
+Go into your terminal and type:
 
-### Phase 1: Setup Phase
+```bash
+python test.py
+```
 
-Each player places one settlement and a road connecting to it. This continues until each player has placed two settlements and two roads.
+This will run the server and all four players on your computer. Each pygame window is a separate player.
 
-### Phase 2: Main Gameplay
+## How to Play
 
-**Resource Accumulation:** Roll the dice to accumulate resources. When any player rolls a certain number, settlements positioned on tiles matching that number will reward the player with one of that resource type. Upgraded settlements reward two resources instead of one.
+**Setup Phase:** Each player places one settlement and a road connecting it until each player has placed two.
 
-**Trading:** Trade resources with other players. Click the trade button, send your desired trade offer, and all other players must respond. The server will execute the trade with a player who accepts your offer.
+**Gameplay:**
 
-**Building:** Use the available buttons to build roads, new settlements, and upgraded settlements. Keep in mind that settlements cannot be placed directly next to each other.
-
-**Victory Condition:** Accumulate victory points by building and upgrading settlements. The first player to reach 10 victory points wins the game.
-
+- Accumulate resources by rolling the dice. When any player rolls a certain number, settlements on that tile will reward their player with one of that specific resource type. If the settlement is upgraded, it will reward two.
+- Trade with other players for resources you don't need. Click the trade button, send your desired trade, then all other players must answer the trade. The server will make the trade with someone who accepted.
+- Build roads, new settlements, and upgraded settlements using the other buttons. Keep in mind settlements can't be placed right next to each other.
+- Accumulate victory points by building and upgrading settlements. When you get ten, you win the game.
