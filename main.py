@@ -4,7 +4,9 @@ __author__ = "jackson del gaizo"
 
 
 #mode = "test"
+#import section
 import pygame
+#json for socket
 import json
 import socket
 from board import Board
@@ -19,7 +21,7 @@ resources = {}
 player_resources = {}
 roll = ''
 win=False
-
+# two dictioraires for proposing trade
 give = {
             "brick": 0,
             "ore": 0,
@@ -34,6 +36,7 @@ get = {
             "wheat": 0,
             "wood": 0
         }
+# resets give and get when trade is complete
 def reset():
     global give,get
     give = {
@@ -54,8 +57,15 @@ def reset():
 
 pygame.init()
 pygame.mixer.init()
+# gameplay sounds
+bell=pygame.mixer.Sound('sounds/bell.wav')
+click=pygame.mixer.Sound('sounds/click.wav')
+build=pygame.mixer.Sound('sounds/build .wav')
+roll_dice=pygame.mixer.Sound('sounds/dice_roll.wav')
+# fonts
 tile_number_font = pygame.font.SysFont('muktamahee', 20)
 font = pygame.font.SysFont('montserrat', 24)
+#screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_WIDTH))
 
 running = True
@@ -74,7 +84,7 @@ wheat=pygame.image.load("images/wheat.png")
 wood=pygame.image.load("images/wood.png")
 confirm=pygame.image.load("images/confirm.png")
 reset = pygame.image.load("images/reset.png")
-
+# make the ui
 dice_button = pygame.transform.scale(dice_button, (50, 50))
 end_turn_button = pygame.transform.scale(end_turn_button, (50, 50))
 road_button = pygame.transform.scale(road_button, (50, 50))
@@ -113,7 +123,7 @@ get_wheat_rect = wheat.get_rect()
 get_wood_rect = wood.get_rect()
 confirm_rect = confirm.get_rect()
 reset_rect = reset.get_rect()
-
+# position the ui
 trade_rect.topleft = (700,700)
 dice_rect.topleft = (800,700)
 end_turn_rect.topleft = (1100,700)
@@ -141,12 +151,13 @@ reset_rect.topleft= (70,240)
 
 
 #192.168.4.35
-# CONNECT TO SERVER AND GET BOARD DATA
+# connect player to server.py using socket
 try:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # localhost means it isn't online are is for test
     server_socket.connect(("localhost", 6068))
 
-    # Receive combined data
+    # Receive the randomly generated board
     message = server_socket.recv(4096).decode()
     data = json.loads(message)
 
@@ -196,7 +207,9 @@ while running:
             game_phase = data.get("game_phase", "setup")
             if game_phase == "gameplay" and first_turn_tick and current_player == player_id:
                 player_state = "roll"
+                bell.play()
                 first_turn_tick = False
+
             roll = data.get("roll")
             if roll is not None:
                 print('roll', roll)
@@ -234,6 +247,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
+            click.play()
             clicked_spot = event.pos
             # Only process placement if it's your turn in setup
             if player_id == current_player and game_phase == "setup":
@@ -248,6 +262,7 @@ while running:
                             print(request)
                             server_socket.send(request.encode())
                             player_state = "placing_road"
+                            build.play()
                             break
 
                 elif player_state == "placing_road":
@@ -261,13 +276,14 @@ while running:
                                 request = json.dumps({"action": "place_road", "spot": road_spot})
                                 print(f"sending {request}")
                                 server_socket.send(request.encode())
+                                build.play()
                                 player_state = "ending_turn"
                                 break
             if player_id == current_player and game_phase == "gameplay":
 
                 if player_state == "roll":
                     if dice_rect.collidepoint(clicked_spot):
-                        #TODO  place dice roll sound
+                        roll_dice.play()
                         request = json.dumps({"action": "roll_dice"})
                         server_socket.send(request.encode())
                         print ("sent")
@@ -305,6 +321,7 @@ while running:
                                             placed_settlement = spot
                                             server_socket.send(request.encode())
                                             settlement_peices -= 1
+                                            build.play()
 
                     if player_state == "placing_road":
                         for road_spot in board.get_valid_road_spots():
@@ -321,6 +338,7 @@ while running:
                                             print(f"sending {request}")
                                             server_socket.send(request.encode())
                                             road_peices -= 1
+                                            build.play()
 
                     if player_state == "trading":
                         if give_brick_rect.collidepoint(clicked_spot):
@@ -464,6 +482,14 @@ while running:
         else:
             pygame.draw.line(screen, colors[owner_id], (road_x, road_y - 15), (road_x, road_y + 15), 5)  # Brown
   #draw buttons
+    if player_resources["wood"] >=1 and player_resources["brick"] >=1:
+        road_button.set_alpha(255)
+    else:
+        road_button.set_alpha(128)
+    if player_resources["wood"] >=1 and player_resources["brick"] >=1 and player_resources["wheat"] >=1 and player_resources["sheep"] >= 1:
+        settlement_button.set_alpha(255)
+    else:
+        settlement_button.set_alpha(128)
     screen.blit(road_button, road_rect)
     screen.blit(settlement_button, settlement_rect)
     screen.blit(trade_button, trade_rect)

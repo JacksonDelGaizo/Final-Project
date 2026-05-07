@@ -6,7 +6,7 @@ __author__ = "jackson del gaizo"
 import subprocess
 import time
 
-subprocess.Popen(["python", "server.py"])
+#subprocess.Popen(["python", "server.py"])
 time.sleep(1)  # Give server time to start
 
 for i in range(4):
