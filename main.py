@@ -482,14 +482,15 @@ while running:
         else:
             pygame.draw.line(screen, colors[owner_id], (road_x, road_y - 15), (road_x, road_y + 15), 5)  # Brown
   #draw buttons
-    if player_resources["wood"] >=1 and player_resources["brick"] >=1:
-        road_button.set_alpha(255)
-    else:
-        road_button.set_alpha(128)
-    if player_resources["wood"] >=1 and player_resources["brick"] >=1 and player_resources["wheat"] >=1 and player_resources["sheep"] >= 1:
-        settlement_button.set_alpha(255)
-    else:
-        settlement_button.set_alpha(128)
+    if game_phase == "gameplay":
+        if player_resources["wood"] >=1 and player_resources["brick"] >=1:
+            road_button.set_alpha(255)
+        else:
+            road_button.set_alpha(128)
+        if player_resources["wood"] >=1 and player_resources["brick"] >=1 and player_resources["wheat"] >=1 and player_resources["sheep"] >= 1:
+            settlement_button.set_alpha(255)
+        else:
+            settlement_button.set_alpha(128)
     screen.blit(road_button, road_rect)
     screen.blit(settlement_button, settlement_rect)
     screen.blit(trade_button, trade_rect)

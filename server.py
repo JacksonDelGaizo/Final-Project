@@ -363,7 +363,9 @@ while True:
                         game.answers.append(responder)
                     if people == 3:
                         print("yayayayayayyayayaya")
-                        game.do_trade()
+                        if len(game.answers) > 0:
+                            game.do_trade()
+
                         settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                         roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
                         for sock, pid in client_to_player.items():
