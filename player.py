@@ -1,3 +1,7 @@
+#file for player class which stores all necessary information for a player, the game class makes and stores for of them
+#5/5/26
+__author__ = "jackson del gaizo"
+
 class Player:
     def __init__(self, player_id, name, color):
         self.player_id = player_id

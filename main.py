@@ -1,3 +1,9 @@
+#This is the client side of the game. This is what the user interacts with to send commands to the server main.py  visually displays the game
+#5/5/26
+__author__ = "jackson del gaizo"
+
+
+#mode = "test"
 import pygame
 import json
 import socket
@@ -12,6 +18,7 @@ first_turn_tick = True
 resources = {}
 player_resources = {}
 roll = ''
+win=False
 
 give = {
             "brick": 0,
@@ -133,11 +140,11 @@ reset_rect.topleft= (70,240)
 
 
 
-
+#192.168.4.35
 # CONNECT TO SERVER AND GET BOARD DATA
 try:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.connect(("localhost", 6067))
+    server_socket.connect(("localhost", 6068))
 
     # Receive combined data
     message = server_socket.recv(4096).decode()
@@ -173,7 +180,7 @@ while not all_players_connected:
             if all_players_connected:
                 print("All players connected! Game starting...")
     except BlockingIOError:
-        time.sleep(0.1)  # Don't spin the CPUwe
+        time.sleep(0.1)  # Don't spin the CPU
 
 while running:
     try:
@@ -388,6 +395,12 @@ while running:
             player_state = "placing_settlement"
             placed_settlement = None
             counter = 0
+    if game_phase == "game_over":
+        if current_player==player_id:
+            win=True
+            running=False
+        else:
+            running=False
 
 
 
@@ -547,5 +560,34 @@ while running:
 # TODO draw cities on board
 
     pygame.display.flip()
+overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+overlay.set_alpha(200)
+overlay.fill((0, 0, 0))
+screen.blit(overlay, (0, 0))
+if win == True:
+    game_over_text = font_large.render("You won", True, (0, 255, 0))
+else:
+    game_over_text = font_large.render("GAME OVER", True, (255, 0, 0))
+    score_text = font_medium.render(f"winner is Player: {current_player+1}", True, (255, 255, 255))
+    score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, 450))
+    screen.blit(score_text, score_rect)
+text1 = font_large.render("press q to quit", True, (255, 0, 0))
+game_over_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, 300))
+text_rect = text1.get_rect(center=(SCREEN_WIDTH // 2, 600))
+screen.blit(game_over_text, game_over_rect)
+screen.blit(text1, text_rect)
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_q:
+                    pygame.quit()
+
+
+
+
+
 
 pygame.quit()

@@ -1,3 +1,8 @@
+# the python file for gameserver class and server, only run once.
+#5/5/26
+__author__ = "jackson del gaizo"
+
+
 import socket
 import json
 import random
@@ -39,6 +44,7 @@ class GameServer:
         """Place a settlement on the board"""
         self.board.all_settlements[settlement_spot] = player_id
         self.players[player_id].place_settlement(settlement_spot)
+        self.players[player_id].vp(1)
     def place_settlement_gameplay(self, settlement_spot, player_id):
 
         self.board.all_settlements[settlement_spot] = player_id
@@ -121,10 +127,15 @@ class GameServer:
     def next_turn(self):
         self.current_player = (self.current_player + 1) % len(self.players)
     def end_turn(self):
-        self.next_turn()
+
         if self.current_phase != "gameplay":
             print ("something is terribly wrong")
             self.current_phase = "gameplay"
+        if self.players[self.current_player].victory_points >= 10:
+            return "game over"
+        else:
+            self.next_turn()
+            return None
 
     def end_turn_in_setup(self):
         self.setup_index += 1
@@ -148,10 +159,10 @@ class GameServer:
 # Create server and game
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server_socket.bind(("localhost", 6067))
+server_socket.bind(("localhost", 6068))
 server_socket.listen(5)
 
-print("Server listening on port 6067...")
+print("Server listening on port 6068...")
 
 game = GameServer(num_players=4)
 
@@ -266,7 +277,10 @@ while True:
                     if game.current_phase == "setup":
                         game.end_turn_in_setup()
                     else:
-                        game.end_turn()
+                        end=game.end_turn()
+                        if end is not None:
+                            game.current_phase = end
+
                     # Convert dicts to JSON
                     settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                     roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]

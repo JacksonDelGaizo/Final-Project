@@ -1,3 +1,8 @@
+# a test file so I can start the game quickly
+#5/5/26
+__author__ = "jackson del gaizo"
+
+
 import subprocess
 import time
 

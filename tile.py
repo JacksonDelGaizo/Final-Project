@@ -1,3 +1,6 @@
+#file for tile class which stores information for the boards tiles because the board is randomly generated
+#5/5/26
+
 import pygame
 
 class Tile(pygame.sprite.Sprite):

@@ -1,3 +1,8 @@
+#This is the file for my board class. The board class is use to make the randomly generated board and also to keep track of everything on the board and store key lists and dictionaries like for buildings, and tile data
+#5/5/26
+__author__ = "jackson del gaizo"
+
+
 import random
 from tile import Tile
 from constants import *
