@@ -15,6 +15,7 @@ import time
 counter = 0
 has_required_materials_for_trade=False
 settlement_peices=3
+city_peices=4
 road_peices=13
 first_turn_tick = True
 resources = {}
@@ -71,6 +72,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_WIDTH))
 running = True
 
 # load images
+city_button = pygame.image.load("images/city_button.png")
+info=pygame.image.load("images/info.png")
 dice_button=pygame.image.load("images/dice.png")
 end_turn_button=pygame.image.load("images/end_turn.png")
 road_button=pygame.image.load("images/road.png")
@@ -91,6 +94,7 @@ road_button = pygame.transform.scale(road_button, (50, 50))
 settlement_button = pygame.transform.scale(settlement_button, (50, 50))
 end_turn_wait_button = pygame.transform.scale(end_turn_wait_button, (50, 50))
 trade_button = pygame.transform.scale(trade_button, (50, 50))
+city_button = pygame.transform.scale(city_button, (50, 50))
 brick = pygame.transform.scale(brick, (25, 25))
 ore = pygame.transform.scale(ore, (25, 25))
 sheep = pygame.transform.scale(sheep, (25, 25))
@@ -98,9 +102,11 @@ wheat = pygame.transform.scale(wheat, (25, 25))
 wood = pygame.transform.scale(wood, (25, 25))
 confirm=pygame.transform.scale(confirm, (150, 30))
 reset = pygame.transform.scale(reset, (150, 30))
+info = pygame.transform.scale(info, (200, 200))
 
 
 dice_rect = dice_button.get_rect()
+info_rect = info.get_rect()
 end_turn_rect = end_turn_button.get_rect()
 road_rect = road_button.get_rect()
 settlement_rect = settlement_button.get_rect()
@@ -111,6 +117,7 @@ ore_rect = ore.get_rect()
 sheep_rect = sheep.get_rect()
 wheat_rect = wheat.get_rect()
 wood_rect = wood.get_rect()
+city_rect = city_button.get_rect()
 give_brick_rect = brick.get_rect()
 give_ore_rect = ore.get_rect()
 give_sheep_rect = sheep.get_rect()
@@ -125,6 +132,8 @@ confirm_rect = confirm.get_rect()
 reset_rect = reset.get_rect()
 # position the ui
 trade_rect.topleft = (700,700)
+city_rect.topleft = (600,700)
+info_rect.topleft = (900,200)
 dice_rect.topleft = (800,700)
 end_turn_rect.topleft = (1100,700)
 road_rect.topleft = (900,700)
@@ -155,7 +164,7 @@ reset_rect.topleft= (70,240)
 try:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # localhost means it isn't online are is for test
-    server_socket.connect(("localhost", 6068))
+    server_socket.connect(("localhost", 6069))
 
     # Receive the randomly generated board
     message = server_socket.recv(4096).decode()
@@ -201,8 +210,10 @@ while running:
             data = json.loads(message)
             settlements_list = data.get("all_settlements", [])
             roads_list = data.get("all_roads", [])
+            city_list = data.get("all_cities", [])
             board.all_settlements = {tuple(spot): player_id for spot, player_id in settlements_list}
             board.all_roads = {tuple(spot): player_id for spot, player_id in roads_list}
+            board.all_cities = {tuple(spot): player_id for spot, player_id in city_list}
             current_player = data.get("current_player", 0)
             game_phase = data.get("game_phase", "setup")
             if game_phase == "gameplay" and first_turn_tick and current_player == player_id:
@@ -309,6 +320,11 @@ while running:
                             player_state = None
                         else:
                             player_state = "trading"
+                    if city_rect.collidepoint(clicked_spot):
+                        if player_state == "placing_city":
+                            player_state = None
+                        else:
+                            player_state = "placing_city"
                     if player_state == "placing_settlement":
                         for spot in player_valid_spots:
                             distance = ((clicked_spot[0] - spot[0]) ** 2 + (clicked_spot[1] - spot[1]) ** 2) ** 0.5
@@ -385,6 +401,20 @@ while running:
                                 "wheat": 0,
                                 "wood": 0
                             }
+
+                    if player_state == "placing_city":
+                        for city_spot in board.get_valid_city_spots(player_id):
+                            city_x, city_y, owner_id = city_spot
+                            distance = ((clicked_spot[0] - city_x) ** 2 + (clicked_spot[1] - city_y) ** 2) ** 0.5
+                            if distance < 20:
+                                if player_resources["wheat"] >= 2 and player_resources["ore"] >= 3:
+                                    if city_peices > 0:
+                                        request = json.dumps({"action": "place_city", "spot": city_spot})
+                                        print(f"sending {request}")
+                                        server_socket.send(request.encode())
+                                        city_peices -= 1
+                                        settlement_peices += 1
+                                        build.play()
 
 
 
@@ -466,6 +496,10 @@ while running:
                         pygame.draw.line(screen, (255, 255, 0), (road_x - 15, road_y), (road_x + 15, road_y),5)  # Yellow
                     else:
                         pygame.draw.line(screen, (255, 255, 0), (road_x, road_y - 15), (road_x, road_y + 15),5)  # Yellow
+        elif player_state == "placing_city":
+            for city_spot in board.get_valid_city_spots(player_id):
+                city_x, city_y, owner_id = city_spot
+                pygame.draw.circle(screen, (255, 215, 0), (city_x, city_y), 35)  # Gold
 
         else:
             pass
@@ -474,6 +508,8 @@ while running:
 # draw settlements on board
     for settlement, owner_id in board.all_settlements.items():
         pygame.draw.circle(screen, colors[owner_id], settlement, 15)
+    for city, owner_id in board.all_cities.items():
+        pygame.draw.circle(screen, (0,0,0), city, 15,4)
 # draw roads on board
     for road, owner_id in board.all_roads.items():
         road_x, road_y, rotation = road
@@ -491,7 +527,13 @@ while running:
             settlement_button.set_alpha(255)
         else:
             settlement_button.set_alpha(128)
+        if player_resources["wheat"] >=2 and player_resources["ore"] >= 3:
+            city_button.set_alpha(255)
+        else:
+            city_button.set_alpha(128)
     screen.blit(road_button, road_rect)
+    screen.blit(info,info_rect)
+    screen.blit(city_button,city_rect)
     screen.blit(settlement_button, settlement_rect)
     screen.blit(trade_button, trade_rect)
     if player_state == "roll":
@@ -543,6 +585,13 @@ while running:
         x_pos=900
         y_pos=670
         screen.blit(text_surface,(x_pos,y_pos))
+        if city_peices == 0:
+            text_surface = font.render(str(f"amount:{city_peices}"), True, (255, 0, 0))
+        else:
+            text_surface = font.render(str(f"amount:{city_peices}"), True, (0, 0, 0))
+        x_pos=600
+        y_pos=670
+        screen.blit(text_surface,(x_pos,y_pos))
     #render the trade screen.
 
     if player_state == "trading" or player_state == "accepting_trade":
@@ -592,13 +641,13 @@ overlay.set_alpha(200)
 overlay.fill((0, 0, 0))
 screen.blit(overlay, (0, 0))
 if win == True:
-    game_over_text = font_large.render("You won", True, (0, 255, 0))
+    game_over_text = font.render("You won", True, (0, 255, 0))
 else:
-    game_over_text = font_large.render("GAME OVER", True, (255, 0, 0))
-    score_text = font_medium.render(f"winner is Player: {current_player+1}", True, (255, 255, 255))
+    game_over_text = font.render("GAME OVER", True, (255, 0, 0))
+    score_text = font.render(f"winner is Player: {current_player+1}", True, (255, 255, 255))
     score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, 450))
     screen.blit(score_text, score_rect)
-text1 = font_large.render("press q to quit", True, (255, 0, 0))
+text1 = font.render("press q to quit", True, (255, 0, 0))
 game_over_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, 300))
 text_rect = text1.get_rect(center=(SCREEN_WIDTH // 2, 600))
 screen.blit(game_over_text, game_over_rect)

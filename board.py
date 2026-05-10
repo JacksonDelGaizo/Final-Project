@@ -18,6 +18,7 @@ class Board:
         self.board_road_spots = []
         self.all_settlements = {} #{(x,y):player_id}
         self.all_roads = {} #{(x,y,rotation):player_id}
+        self.all_cities = {}
 
 
         if board_data:
@@ -138,6 +139,15 @@ class Board:
 
     def get_valid_road_spots(self):
         return [spot for spot in self.board_road_spots if spot not in self.all_roads]
+
+    def get_valid_city_spots(self, player_id):
+        return [
+            (x, y, owner_id)
+            for (x, y), owner_id in self.all_settlements.items()
+            if owner_id == player_id
+               and (x, y) not in self.all_cities  # ← new check
+        ]
+
 
     def get_adjacent_settlements(self, road_spot, player_id):
         """Return YOUR settlements adjacent to this road"""

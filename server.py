@@ -55,6 +55,13 @@ class GameServer:
         self.players[player_id].remove_resource("sheep", 1)
         self.players[player_id].vp(1)
 
+    def place_city(self, city_spot, player_id):
+        x, y, owner_id = city_spot
+        self.board.all_cities[(x, y)] = player_id
+        self.players[player_id].remove_resource("wheat", 2)
+        self.players[player_id].remove_resource("ore", 3)
+        self.players[player_id].vp(1)
+
     def place_road(self, road_spot, player_id):
         """Place a road on the board"""
         self.board.all_roads[road_spot] = player_id
@@ -91,8 +98,11 @@ class GameServer:
                 settle_x, settle_y = settlement
                 distance = ((settle_x - tile_center_x) ** 2 + (settle_y - tile_center_y) ** 2) ** 0.5
 
-                if distance < 80:  # Close enough to be adjacent
-                    self.players[player_id].add_resource(tile["resource"], 1)
+                if distance < 80:
+                    if settlement in self.board.all_cities:
+                        self.players[player_id].add_resource(tile["resource"], 2)
+                    else:
+                        self.players[player_id].add_resource(tile["resource"], 1)
 
     def do_trade(self):
         print("doing trade")
@@ -132,7 +142,8 @@ class GameServer:
             print ("something is terribly wrong")
             self.current_phase = "gameplay"
         if self.players[self.current_player].victory_points >= 10:
-            return "game over"
+            self.current_phase = "game_over"
+            return "game_over"
         else:
             self.next_turn()
             return None
@@ -150,16 +161,16 @@ class GameServer:
         self.current_player = self.setup_index % 4
 
     def check_winner(self):
-        for player in self.players:
-            if player.victory_points >= 10:
-                return player
+        for dude in self.players:
+            if dude.victory_points >= 10:
+                return dude
         return None
 
 
 # Create server and game
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server_socket.bind(("localhost", 6068))
+server_socket.bind(("localhost", 6069))
 server_socket.listen(5)
 
 print("Server listening on port 6068...")
@@ -220,6 +231,7 @@ while True:
                         game.gather_resource(player.player_id, result)
                     settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                     roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                    city_list = [[list(k), v] for k, v in game.board.all_cities.items()]
 
                     for sock, pid in client_to_player.items():
                         response = json.dumps({
@@ -228,6 +240,7 @@ while True:
                             "all_settlements": settlements_list,
                             "all_roads": roads_list,
                             "current_player": game.current_player,
+                            "all_cities": city_list,
                             "game_phase": game.current_phase
 
                         })
@@ -262,6 +275,7 @@ while True:
                     settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                     roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
 
+
                     # Broadcast updated state
                     response = json.dumps({
                         "all_settlements": settlements_list,
@@ -284,6 +298,7 @@ while True:
                     # Convert dicts to JSON
                     settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                     roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                    city_list = [[list(k), v] for k, v in game.board.all_cities.items()]
 
                     # Broadcast updated state
                     for sock, pid in client_to_player.items():
@@ -291,6 +306,7 @@ while True:
                             "all_settlements": settlements_list,
                             "all_roads": roads_list,
                             "current_player": game.current_player,
+                            "all_cities": city_list,
                             "game_phase": game.current_phase,
                             "resources": game.players[pid].resources
                         })
@@ -304,6 +320,7 @@ while True:
                     # Convert dicts to JSON
                     settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                     roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                    city_list = [[list(k), v] for k, v in game.board.all_cities.items()]
 
                     # Broadcast updated state
                     for sock, pid in client_to_player.items():
@@ -311,6 +328,7 @@ while True:
                             "all_settlements": settlements_list,
                             "all_roads": roads_list,
                             "current_player": game.current_player,
+                            "all_cities": city_list,
                             "game_phase": game.current_phase,
                             "resources": game.players[pid].resources
                         })
@@ -323,11 +341,13 @@ while True:
                     # Convert dicts to JSON
                     settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                     roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                    city_list = [[list(k), v] for k, v in game.board.all_cities.items()]
 
                     # Broadcast updated state
                     for sock, pid in client_to_player.items():
                         response = json.dumps({
                             "all_settlements": settlements_list,
+                            "all_cities": city_list,
                             "all_roads": roads_list,
                             "current_player": game.current_player,
                             "game_phase": game.current_phase,
@@ -339,12 +359,14 @@ while True:
                     game.transfer_to_player = command["get"]
                     settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                     roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                    city_list = [[list(k), v] for k, v in game.board.all_cities.items()]
                     for sock, pid in client_to_player.items():
                         if pid == game.current_player:
                             continue
                         else:
                             response = json.dumps({
                                 "all_settlements": settlements_list,
+                                "all_cities": city_list,
                                 "all_roads": roads_list,
                                 "current_player": game.current_player,
                                 "game_phase": game.current_phase,
@@ -368,9 +390,11 @@ while True:
 
                         settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
                         roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                        city_list = [[list(k), v] for k, v in game.board.all_cities.items()]
                         for sock, pid in client_to_player.items():
                             response = json.dumps({
                                 "all_settlements": settlements_list,
+                                "all_cities": city_list,
                                 "all_roads": roads_list,
                                 "current_player": game.current_player,
                                 "game_phase": game.current_phase,
@@ -379,6 +403,27 @@ while True:
                             print(response)
                             sock.send(response.encode())
                         people=0
+                if command["action"] == "place_city":
+                    print(command)
+                    city_spot = tuple(command["spot"])
+                    game.place_city(city_spot, player_id)
+
+                    settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
+                    roads_list = [[list(k), v] for k, v in game.board.all_roads.items()]
+                    city_list =  [[list(k), v] for k, v in game.board.all_cities.items()]
+                    for sock, pid in client_to_player.items():
+                        response = json.dumps({
+                            "all_settlements": settlements_list,
+                            "all_cities": city_list,
+                            "all_roads": roads_list,
+                            "current_player": game.current_player,
+                            "game_phase": game.current_phase,
+                            "resources": game.players[pid].resources
+                        })
+                        sock.send(response.encode())
+
+
+
 
 
 
