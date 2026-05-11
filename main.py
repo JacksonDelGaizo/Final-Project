@@ -164,7 +164,7 @@ reset_rect.topleft= (70,240)
 try:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # localhost means it isn't online are is for test
-    server_socket.connect(("localhost", 6069))
+    server_socket.connect(("localhost", 6071))
 
     # Receive the randomly generated board
     message = server_socket.recv(4096).decode()
@@ -358,19 +358,19 @@ while running:
 
                     if player_state == "trading":
                         if give_brick_rect.collidepoint(clicked_spot):
-                            if player_resources["brick"] >= 1:
+                            if player_resources["brick"] > give["brick"]:
                                 give["brick"] += 1
                         if give_ore_rect.collidepoint(clicked_spot):
-                            if player_resources["ore"] >= 1:
+                            if player_resources["ore"] > give["ore"]:
                                 give["ore"] += 1
                         if give_sheep_rect.collidepoint(clicked_spot):
-                            if player_resources["sheep"] >= 1:
+                            if player_resources["sheep"] > give["sheep"]:
                                 give["sheep"] += 1
                         if give_wheat_rect.collidepoint(clicked_spot):
-                            if player_resources["wheat"] >= 1:
+                            if player_resources["wheat"] > give["wheat"]:
                                 give["wheat"] += 1
                         if give_wood_rect.collidepoint(clicked_spot):
-                            if player_resources["wood"] >= 1:
+                            if player_resources["wood"] > give["wood"]:
                                 give["wood"] += 1
                         if get_brick_rect.collidepoint(clicked_spot):
                             get["brick"] += 1
@@ -386,6 +386,20 @@ while running:
                             request= json.dumps({"action": "propose_trade", "give": give, "get": get})
                             server_socket.send(request.encode())
                             player_state=None
+                            give = {
+                                "brick": 0,
+                                "ore": 0,
+                                "sheep": 0,
+                                "wheat": 0,
+                                "wood": 0
+                            }
+                            get = {
+                                "brick": 0,
+                                "ore": 0,
+                                "sheep": 0,
+                                "wheat": 0,
+                                "wood": 0
+                            }
                         if reset_rect.collidepoint(clicked_spot):
                             give = {
                                 "brick": 0,
@@ -427,6 +441,20 @@ while running:
                         request = json.dumps({"action": "answer_trade","decision":"accept","player_id": player_id})
                         server_socket.send(request.encode())
                         player_state = None
+                        give = {
+                            "brick": 0,
+                            "ore": 0,
+                            "sheep": 0,
+                            "wheat": 0,
+                            "wood": 0
+                        }
+                        get = {
+                            "brick": 0,
+                            "ore": 0,
+                            "sheep": 0,
+                            "wheat": 0,
+                            "wood": 0
+                        }
                 if reset_rect.collidepoint(clicked_spot):
                     request = json.dumps({"action": "answer_trade","decision":"reject","player_id": player_id})
                     server_socket.send(request.encode())

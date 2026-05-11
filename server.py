@@ -15,6 +15,7 @@ people=0
 
 
 class GameServer:
+    # this stores serverside information like the current player and game_state and all the gamepeices which are sent to clients at the end of every action
     def __init__(self, num_players=4):
         self.players = []
         self.answers = []
@@ -41,12 +42,12 @@ class GameServer:
         pass
 
     def place_settlement(self, settlement_spot, player_id):
-        """Place a settlement on the board"""
+       #Place a settlement on the board
         self.board.all_settlements[settlement_spot] = player_id
         self.players[player_id].place_settlement(settlement_spot)
         self.players[player_id].vp(1)
     def place_settlement_gameplay(self, settlement_spot, player_id):
-
+        #same as place settlement but removes resources and adds points
         self.board.all_settlements[settlement_spot] = player_id
         self.players[player_id].place_settlement(settlement_spot)
         self.players[player_id].remove_resource("wood", 1)
@@ -56,6 +57,7 @@ class GameServer:
         self.players[player_id].vp(1)
 
     def place_city(self, city_spot, player_id):
+        # upgrades settlements
         x, y, owner_id = city_spot
         self.board.all_cities[(x, y)] = player_id
         self.players[player_id].remove_resource("wheat", 2)
@@ -63,24 +65,25 @@ class GameServer:
         self.players[player_id].vp(1)
 
     def place_road(self, road_spot, player_id):
-        """Place a road on the board"""
+        #Place a road on the board
         self.board.all_roads[road_spot] = player_id
         self.players[player_id].place_road(road_spot)
     def place_road_gameplay(self, road_spot, player_id):
-        """Place a road on the board"""
+        #Place a road on the board but with remove resources
         self.board.all_roads[road_spot] = player_id
         self.players[player_id].place_road(road_spot)
         self.players[player_id].remove_resource("wood", 1)
         self.players[player_id].remove_resource("brick", 1)
 
     def roll_dice(self):
+         #rolls two dice and adds results
         dice1 = random.randint(1, 6)
         dice2 = random.randint(1, 6)
         total = dice1 + dice2
         return total
 
     def gather_resource(self, player_id, number):
-        """Give resources to a player based on dice roll"""
+        #Give resources to a player based on dice roll
         for tile in self.board.board_data:
             if tile["number"] != number:
                 continue
@@ -105,6 +108,7 @@ class GameServer:
                         self.players[player_id].add_resource(tile["resource"], 1)
 
     def do_trade(self):
+        #trade resources between two players
         print("doing trade")
         print(f"self.answers: {self.answers}")
         try:
@@ -135,9 +139,10 @@ class GameServer:
         pass
 
     def next_turn(self):
+        # moves current player to next player
         self.current_player = (self.current_player + 1) % len(self.players)
     def end_turn(self):
-
+        #checks win and next turn
         if self.current_phase != "gameplay":
             print ("something is terribly wrong")
             self.current_phase = "gameplay"
@@ -149,6 +154,7 @@ class GameServer:
             return None
 
     def end_turn_in_setup(self):
+        # end turn but in setup phase
         self.setup_index += 1
 
         # Check if setup is complete (8 turns total: 2 per player)
@@ -161,6 +167,7 @@ class GameServer:
         self.current_player = self.setup_index % 4
 
     def check_winner(self):
+        #checks if anyone has won
         for dude in self.players:
             if dude.victory_points >= 10:
                 return dude
@@ -170,10 +177,10 @@ class GameServer:
 # Create server and game
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server_socket.bind(("localhost", 6069))
+server_socket.bind(("localhost", 6071))
 server_socket.listen(5)
 
-print("Server listening on port 6068...")
+print("Server listening on port 6071...")
 
 game = GameServer(num_players=4)
 
@@ -222,11 +229,9 @@ while True:
                 player_id = client_to_player[client_socket]
                 command = json.loads(message)
                 print(f"Received command: {command}")
-
+#checks what command to do and then executes it
                 if command["action"] == "roll_dice":
                     result = game.roll_dice()
-
-
                     for player in game.players:
                         game.gather_resource(player.player_id, result)
                     settlements_list = [[list(k), v] for k, v in game.board.all_settlements.items()]
@@ -245,8 +250,6 @@ while True:
 
                         })
                         sock.send(response.encode())
-
-
                 if command["action"] == "place_settlement":
                     settlement_spot = tuple(command["spot"])
 
@@ -267,7 +270,6 @@ while True:
 
                     for client in connected_clients:
                         client.send(response.encode())
-
                 if command["action"] == "place_road":
                     road_spot = tuple(command["spot"])
                     game.place_road(road_spot, player_id)
@@ -286,7 +288,6 @@ while True:
 
                     for client in connected_clients:
                         client.send(response.encode())
-
                 if command["action"] == "end_turn":
                     if game.current_phase == "setup":
                         game.end_turn_in_setup()
@@ -311,7 +312,6 @@ while True:
                             "resources": game.players[pid].resources
                         })
                         sock.send(response.encode())
-
                 if command["action"] == "place_settlement_gameplay":
                     settlement_spot = tuple(command["spot"])
 

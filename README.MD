@@ -5,7 +5,7 @@
 Make sure you have all the files in a PyCharm project. Go into `main.py` and `server.py` and check that you see this code:
 
 ```python
-server_socket.connect(("localhost", 6068))
+server_socket.connect(("localhost", 6071))
 ```
 
 Make sure it isn't going to try to connect to a different IP address. For grading this project, host everything locally.
